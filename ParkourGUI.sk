@@ -1,0 +1,60 @@
+command /parkour:
+    permission: parkour.play
+    trigger:
+        set {_size} to size of {parkour.ListOfNames::*}
+        if {_size} is equal to 0:
+            send "{@prefix} There are no parkour courses available right now." to player
+            stop
+
+        set metadata tag "parkour_list_view" of player to chest inventory with 3 rows named colored "Choose A Parkour Course!"
+        set {parkour.inTpMenu.%player's uuid%} to true
+        set {_chestslot} to 0
+        set {_item} to 1
+        loop {_size} times:
+            set {_passesCheck} to false
+                if {parkour.%{parkour.ListOfNames::%{_item}%}%.spawn} is set:
+
+                    if {parkour.%{parkour.ListOfNames::%{_item}%}%.name} is set:
+                        if {parkour.playerHasFinished.%{parkour.ListOfNames::%{_item}%}%.%player's uuid%} is true:
+                            set slot {_chestslot} of metadata tag "parkour_list_view" of player to green stained glass named colored "%{parkour.%{parkour.ListOfNames::%{_item}%}%.name}%" with lore "&aCOMPLETE" and "&aBest Time: %{parkour.playerHasFinished.BestTime.%{parkour.ListOfNames::%{_item}%}%.%player's uuid%}%"
+                        else:
+                            set slot {_chestslot} of metadata tag "parkour_list_view" of player to red stained glass named colored "%{parkour.%{parkour.ListOfNames::%{_item}%}%.name}%" with lore "&cINCOMPLETE"
+                        set {_passesCheck} to true
+                    else:
+                        if {parkour.playerHasFinished.%{parkour.ListOfNames::%{_item}%}%.%player's uuid%} is true:
+                            set slot {_chestslot} of metadata tag "parkour_list_view" of player to green stained glass named "%{parkour.ListOfNames::%{_item}%}%" with lore "&aCOMPLETE" and "&aBest Time: %{parkour.playerHasFinished.BestTime.%{parkour.ListOfNames::%{_item}%}%.%player's uuid%}%"
+                        else:
+                            set slot {_chestslot} of metadata tag "parkour_list_view" of player to red stained glass named  "%{parkour.ListOfNames::%{_item}%}%" with lore "&cINCOMPLETE"
+                        set {_passesCheck} to true
+
+            if {_passesCheck} is true:        
+                add 1 to {_chestslot}
+            add 1 to {_item}
+        if {parkour.playerIsRunning.%player's uuid%} is true:
+            set slot 26 of metadata tag "parkour_list_view" of player to barrier named "&cQuit"
+        open (metadata tag "parkour_list_view" of player) to player
+
+on inventory click:
+    set {_inv} to the clicked inventory
+    if {parkour.inTpMenu.%player's uuid%} is true:
+        if "%{_inv}%" is "inventory of %player%":
+            cancel event
+    if event-inventory = (metadata tag "parkour_list_view" of player):
+        cancel event
+        if index of event-slot is 26:
+            if {parkour.playerIsRunning.%player's uuid%} is true:
+                clear {parkour.playerIsRunning.%player's uuid%}
+                clear {parkour.playerIsRunning.timeStart.%player's uuid%}
+                clear {parkour.playerIsRunning.map.%player's uuid%}
+                send "{@prefix} {@player_leaves_course}" to player
+                wait 1 second
+                teleport player to location of {parkour.quitlocation}
+        else:
+            if "%name of event-slot%" is not "<none>":
+                set {_tp} to uncolored name of event-slot
+                clear {parkour.playerIsRunning.%player's uuid%}
+                clear {parkour.playerIsRunning.timeStart.%player's uuid%}
+                clear {parkour.playerIsRunning.map.%player's uuid%}
+                send "{@prefix} {@player_teleports_to_course}" to player
+                wait 1 second
+                teleport player to location of {parkour.%{_tp}%.spawn}

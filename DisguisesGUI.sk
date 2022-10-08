@@ -1,0 +1,19 @@
+command /mms:
+    executable by: players
+    trigger:
+        set metadata tag "hns_list_view" of player to chest inventory with 3 rows named colored "&2Select Your Costume"
+        set {_cow} to skull of "Tres" parsed as offlineplayer
+        set slot 12 of metadata tag "hns_list_view" of player to {_cow} named "&2Cow" #with lore "test1" and "test2"
+        set {_pig} to skull of "Pork" parsed as offlineplayer
+        set slot 13 of metadata tag "hns_list_view" of player to {_pig} named "&cPig" #with lore "test1" and "test2"
+        set {_zombie} to skull of "MHF_Zombie" parsed as offlineplayer
+        set slot 14 of metadata tag "hns_list_view" of player to {_zombie} named "&3Zombie" #with lore "test1" and "test2"
+        
+        open (metadata tag "hns_list_view" of player) to player
+
+on inventory click:
+    if event-inventory = (metadata tag "hns_list_view" of player):
+        cancel event
+        if uncolored "%name of event-slot%" != "none":
+            set {_transform} to uncolored "%name of event-slot%"
+            execute console command "/disguiseplayer %player% %{_transform}%"
