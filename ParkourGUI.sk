@@ -58,3 +58,7 @@ on inventory click:
                 send "{@prefix} {@player_teleports_to_course}" to player
                 wait 1 second
                 teleport player to location of {parkour.%{_tp}%.spawn}
+
+on inventory close:
+    if {parkour.inTpMenu.%player's uuid%} is true:
+        set {parkour.inTpMenu.%player's uuid%} to false
