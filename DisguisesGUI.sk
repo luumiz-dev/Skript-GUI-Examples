@@ -1,6 +1,8 @@
 command /mms:
     executable by: players
     trigger:
+        set {hideandseek.PlayerInGUI.%player's uuid%} to true
+
         set metadata tag "hns_list_view" of player to chest inventory with 3 rows named colored "&2Select Your Costume"
         set {_cow} to skull of "Tres" parsed as offlineplayer
         set slot 12 of metadata tag "hns_list_view" of player to {_cow} named "&2Cow" #with lore "test1" and "test2"
@@ -16,4 +18,12 @@ on inventory click:
         cancel event
         if uncolored "%name of event-slot%" != "none":
             set {_transform} to uncolored "%name of event-slot%"
+            set {_transformText} to "%name of event-slot%"
             execute console command "/disguiseplayer %player% %{_transform}%"
+            send "You have been transformed into: %{_transformText}%" to player
+    if {hideandseek.PlayerInGUI.%player's uuid%} is true:
+        cancel event
+
+on inventory close:
+    if {hideandseek.PlayerInGUI.%player's uuid%} is true:
+        set {hideandseek.PlayerInGUI.%player's uuid%} to false
