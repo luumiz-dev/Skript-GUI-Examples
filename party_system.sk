@@ -1,0 +1,201 @@
+
+# ############################################################
+#
+#               PARTY SYSTEM
+#
+# ############################################################
+command /dungeon:
+    permission: minecraft.op
+    aliases: /dg
+    trigger:
+        set metadata tag "player_dg_menu" of player to chest inventory with 3 rows named colored "Dungeons"
+        set {_chestslot} to 0
+        set {_item} to 1
+        loop 27 times:
+            if mod({_item}, 2) = 1:
+                set slot {_chestslot} of metadata tag "player_dg_menu" of player to orange stained glass pane named "&6"
+            else:
+                set slot {_chestslot} of metadata tag "player_dg_menu" of player to gray stained glass pane named "&6"
+            add 1 to {_chestslot}
+            add 1 to {_item}
+
+        if {dungeons.partyOwner.%player's name%} is true:
+            set slot 11 of metadata tag "player_dg_menu" of player to netherite helmet named "&aManage Applications"
+            set slot 13 of metadata tag "player_dg_menu" of player to netherite helmet named "&aView Party"
+            set slot 15 of metadata tag "player_dg_menu" of player to netherite helmet named "&aLeave Party"
+        else if {dungeons.inParty.%player's name%} is true:
+            set slot 11 of metadata tag "player_dg_menu" of player to netherite helmet named "&aView Party"
+            set slot 15 of metadata tag "player_dg_menu" of player to netherite helmet named "&aLeave Party"
+        else:
+            set slot 11 of metadata tag "player_dg_menu" of player to netherite helmet named "&aCreate Party"
+            set slot 15 of metadata tag "player_dg_menu" of player to netherite helmet named "&aJoin Party"
+
+        set {dungeons.inMenu.%player's name%} to true
+        open (metadata tag "player_dg_menu" of player) to player
+
+function Dungeons_OpenJoinGUI(p : player) :: boolean:
+    set metadata tag "player_dg_menu_joining" of {_p} to chest inventory with 4 rows named colored "Open Parties"
+    set {_chestslot} to 0
+    loop 36 times:
+        set slot {_chestslot} of metadata tag "player_dg_menu_joining" of {_p} to gray stained glass pane named "&6"
+        add 1 to {_chestslot}
+    set {_chestslot} to 0
+    set {_item} to 1
+    loop size of {dungeons.activeParties::*} times:
+        set slot {_chestslot} of metadata tag "player_dg_menu_joining" of {_p} to player head named "&6%{dungeons.activeParties::%{_item}%}%"
+        add 1 to {_chestslot}
+        add 1 to {_item}
+
+    set {_name} to {_p}'s name
+    set {dungeons.inMenu.Joining.%{_name}%} to true
+    open (metadata tag "player_dg_menu_joining" of {_p}) to {_p}
+    return false
+
+function Dungeons_OpenManageGUI(p : player) :: boolean:
+    set metadata tag "player_dg_menu_manage" of {_p} to chest inventory with 4 rows named colored "Manage Your Party"
+    set {_chestslot} to 0
+    loop 36 times:
+        set slot {_chestslot} of metadata tag "player_dg_menu_manage" of {_p} to gray stained glass pane named "&6"
+        add 1 to {_chestslot}
+    set {_chestslot} to 0
+    set {_item} to 1
+    loop size of {dungeons.partyApplications.%{_p}'s name%::*} times:
+        set slot {_chestslot} of metadata tag "player_dg_menu_manage" of {_p} to player head named "&6%{dungeons.partyApplications.%{_p}'s name%::%{_item}%}%"
+        add 1 to {_chestslot}
+        add 1 to {_item}
+
+    set {_name} to {_p}'s name
+    set {dungeons.inMenu.Manage.%{_name}%} to true
+    open (metadata tag "player_dg_menu_manage" of {_p}) to {_p}
+    return false
+
+function Dungeons_OpenViewGUI(p : player) :: boolean:
+    set metadata tag "player_dg_menu_view" of {_p} to chest inventory with 4 rows named colored "View Your Party"
+    set {_chestslot} to 0
+    loop 36 times:
+        set slot {_chestslot} of metadata tag "player_dg_menu_view" of {_p} to gray stained glass pane named "&6"
+        add 1 to {_chestslot}
+    set {_chestslot} to 0
+    set {_item} to 1
+    loop size of {dungeons.partyMembers.%{dungeons.partyLeaderOf.%{_p}%}%::*} times:
+        set slot {_chestslot} of metadata tag "player_dg_menu_view" of {_p} to player head named "&6%{dungeons.partyMembers.%{dungeons.partyLeaderOf.%{_p}%}%::%{_item}%}%"
+        add 1 to {_chestslot}
+        add 1 to {_item}
+
+    set {_name} to {_p}'s name
+    set {dungeons.inMenu.Manage.%{_name}%} to true
+    open (metadata tag "player_dg_menu_view" of {_p}) to {_p}
+    return false
+
+on inventory click:
+    set {_inv} to the clicked inventory
+    if {dungeons.inMenu.%player's name%} or {dungeons.inMenu.Joining.%player's name%} or {dungeons.inMenu.Manage.%player's name%} or {dungeons.inMenu.View.%player's name%} is set:
+        if "%{_inv}%" is "inventory of %player%":
+            cancel event
+
+    if event-inventory = (metadata tag "player_dg_menu" of player):
+        cancel event
+        if name of event-slot contains "Create Party":
+            close player's inventory
+            send "[Dungeons] You created a dungeon party. Manage your team through with /dg" to player
+            set {dungeons.partyOwner.%player's name%} to true
+            set {dungeons.inParty.%player's name%} to true
+            set {dungeons.partyLeaderOf.%player's name%} to player's name
+            add player's name to {dungeons.partyMembers.%player's name%::*}
+            add player's name to {dungeons.activeParties::*}
+        else if name of event-slot contains "Join Party":
+            close player's inventory
+            Dungeons_OpenJoinGUI(player)
+        else if name of event-slot contains "Leave Party":
+            if {dungeons.partyOwner.%player's name%} or {dungeons.inParty.%player's name%} is true:
+                close player's inventory
+
+                if {dungeons.partyApplications.%player's name%::*} is set:
+                    set {_counter} to 1
+                    loop size of {dungeons.partyApplications.%player's name%::*} times:
+                        send "%{dungeons.inParty.%{dungeons.partyApplications.%player's name%::%{_counter}%}%}%" to player
+                        clear {dungeons.inParty.%{dungeons.partyApplications.%player's name%::%{_counter}%}%}
+                        clear {dungeons.partyLeaderOf.%{dungeons.partyApplications.%player's name%::%{_counter}%}%}
+                        add 1 to {_counter}
+                    clear {dungeons.partyApplications.%player's name%::*}
+
+                if {dungeons.partyMembers.%player's name%::*} is set:
+                    set {_counter} to 1
+                    loop size of {dungeons.partyMembers.%player's name%::*} times:
+                        #send "%{dungeons.partyMembers.%player's name%::%{_counter}%}%" to player
+                        clear {dungeons.inParty.%{dungeons.partyMembers.%player's name%::%{_counter}%}%}
+                        clear {dungeons.partyLeaderOf.%{dungeons.partyMembers.%player's name%::%{_counter}%}%}
+                        send "[Dungeons] The leader has disbanded the party." to {dungeons.partyMembers.%player's name%::%{_counter}%}
+                        add 1 to {_counter}
+                    clear {dungeons.partyMembers.%player's name%::*}
+                #send "%{dungeons.partyMembers.%player's name%::*}%" to player
+
+            clear {dungeons.partyOwner.%player's name%}
+            clear {dungeons.inParty.%player's name%}
+            remove player's name from {dungeons.partyMembers.%{dungeons.partyLeaderOf.%player's name%}%::*}
+            clear {dungeons.partyLeaderOf.%player's name%}
+            remove player's name from {dungeons.activeParties::*} 
+            send "[Dungeons] You left your dungeon party." to player
+        else if name of event-slot contains "Manage Applications":
+            close player's inventory
+            Dungeons_OpenManageGUI(player)
+        else if name of event-slot contains "View Party":
+            close player's inventory
+            Dungeons_OpenViewGUI(player)
+
+    else if event-inventory = (metadata tag "player_dg_menu_joining" of player):
+        cancel event
+        if {dungeons.inParty.%player's name%} and {dungeons.partyOwner.%player's name%} are not set:
+            send "[Dungeons] You applied to %name of event-slot%&f's party." to player
+            send "[Dungeons] &6%player% &fhas applied to your party." to (uncolored name of event-slot parsed as player)
+            add player's name to {dungeons.partyApplications.%(uncolored name of event-slot parsed as player)'s name%::*}
+            close player's inventory
+    
+    else if event-inventory = (metadata tag "player_dg_menu_manage" of player):
+        cancel event
+        if {dungeons.inParty.%player's name%} and {dungeons.partyOwner.%player's name%} are set:
+            send "[Dungeons] You accepted %name of event-slot%&f into the party." to player
+            send "[Dungeons] &6%player% &fhas accepted your join request." to (uncolored name of event-slot parsed as player)
+            add (uncolored name of event-slot parsed as player) to {dungeons.partyMembers.%player's name%::*}
+            set {dungeons.inParty.%uncolored name of event-slot%} to true
+            remove (uncolored name of event-slot parsed as player) from {dungeons.partyApplications.%player's name%::*}
+            set {dungeons.partyLeaderOf.%uncolored name of event-slot%} to player's name
+            close player's inventory
+    
+    else if event-inventory = (metadata tag "player_dg_menu_view" of player):
+        cancel event
+        
+on inventory close:
+    if {dungeons.inMenu.%player's name%} is true:
+        set {dungeons.inMenu.%player's name%} to false
+    if {dungeons.inMenu.Joining.%player's name%} is true:
+        set {dungeons.inMenu.Joining.%player's name%} to false
+    if {dungeons.inMenu.Manage.%player's name%} is true:
+        set {dungeons.inMenu.Manage.%player's name%} to false
+
+on leave:
+    if {dungeons.partyOwner.%player's name%} is set:
+        if {dungeons.partyApplications.%player's name%::*} is set:
+            set {_counter} to 1
+            loop size of {dungeons.partyApplications.%player's name%::*} times:
+                send "%{dungeons.inParty.%{dungeons.partyApplications.%player's name%::%{_counter}%}%}%" to player
+                clear {dungeons.inParty.%{dungeons.partyApplications.%player's name%::%{_counter}%}%}
+                add 1 to {_counter}
+            clear {dungeons.partyApplications.%player's name%::*}
+
+        if {dungeons.partyMembers.%player's name%::*} is set:
+            set {_counter} to 1
+            loop size of {dungeons.partyMembers.%player's name%::*} times:
+                #send "%{dungeons.partyMembers.%player's name%::%{_counter}%}%" to player
+                clear {dungeons.inParty.%{dungeons.partyMembers.%player's name%::%{_counter}%}%}
+                clear {dungeons.partyLeaderOf.%{dungeons.partyMembers.%player's name%::%{_counter}%}%}
+                send "[Dungeons] The leader has disbanded the party." to {dungeons.partyMembers.%player's name%::%{_counter}%}
+                add 1 to {_counter}
+            clear {dungeons.partyMembers.%player's name%::*}
+        #send "%{dungeons.partyMembers.%player's name%::*}%" to player
+
+    remove player's name from {dungeons.partyMembers.%{dungeons.partyLeaderOf.%player's name%}%::*}
+    clear {dungeons.partyLeaderOf.%player's name%}
+    clear {dungeons.partyOwner.%player's name%}
+    clear {dungeons.inParty.%player's name%}
+    remove player's name from {dungeons.activeParties::*} 
